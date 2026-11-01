@@ -1,8 +1,7 @@
-"""Demo tools that return long-ish output, so turns carry tool results worth archiving.
+"""Demo tools that return long-ish output, so turns carry tool results worth compressing.
 
 Both tools read from a small built-in demo dataset: the services, files and log lines are
-generated, not real. The output is deterministic per input, so a recalled turn can be
-checked against a fresh call.
+generated, not real. The output is deterministic per input.
 """
 
 import zlib
