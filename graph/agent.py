@@ -28,9 +28,9 @@ context_manager = UnforgetContextManager(
     target_ratio=0.6,  # aim for about 1800 tokens after a trim
     keep_recent_turns=4,  # the last 4 turns are never touched
     min_confidence=0.7,  # apply Clef's top option only at p >= 0.7, otherwise keep
-    clef_model="clef-flash",  # or "clef" for the larger model
+    clef_model="clef",  # the REST endpoint accepts only "clef" (clef-flash gave HTTP 422)
     writer_model="claude-haiku-5-5",  # writes compress notes and pinned facts
-    background=True,  # Clef and the writer run off the request path; applied on the next call
+    background=False,  # off for the first live test (inline); True runs Clef off the request path
     hard_budget_ratio=2.0,  # past 6000 tokens a call waits for the job (or trims inline)
 )
 

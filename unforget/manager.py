@@ -155,7 +155,7 @@ class UnforgetContextManager(BaseContextManager[S]):
             the newest turn may still be in progress).
         min_confidence: Apply Clef's top option only at or above this probability;
             below it the turn is kept.
-        clef_model: ``"clef-flash"`` (default, smaller and faster) or ``"clef"``.
+        clef_model: ``"clef"`` (default and the only model the REST endpoint accepts).
         writer_model: Cheap LLM for compress notes and pinned facts (tenxgraph ``call_llm``).
         clef_client: Decision client. Defaults to :class:`ClefClient` reading
             ``CLOUDFLARE_ACCOUNT_ID`` and ``CLOUDFLARE_API_TOKEN`` at call time.
@@ -185,7 +185,7 @@ class UnforgetContextManager(BaseContextManager[S]):
         target_ratio: float = 0.6,
         keep_recent_turns: int = 4,
         min_confidence: float = 0.7,
-        clef_model: str = "clef-flash",
+        clef_model: str = "clef",
         writer_model: str = "claude-haiku-5-5",
         clef_client: DecisionClient | None = None,
         llm: LLMFn | None = None,

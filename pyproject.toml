@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "unforget"
 version = "0.1.0"
-description = "Unforget: context compression that can always undo. A 10xGraph agent."
+description = "context-triage: a decision model triages old conversation turns (keep, compress, archive, drop, pin). A 10xGraph agent."
 license = {text = "MIT"}
 requires-python = ">=3.12"
 authors = []

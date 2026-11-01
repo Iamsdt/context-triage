@@ -1,6 +1,6 @@
-# Unforget: notes for the README writer
+# context-triage: notes for the README writer
 
-Tagline: "Context compression that can always undo."
+Tagline: "Context triage for LLM agents: a small decision model decides what to keep, compress, archive, drop or pin."
 
 Status: code complete, lint clean (`ruff check`, `ruff format --check`). Not tested: no test
 suite, no live run with real keys, `10xgraph dev` not started. The user tests it.
@@ -31,8 +31,8 @@ Sources: https://developers.cloudflare.com/workers-ai/models/clef/ , its
 
 - REST: `POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/cloudflare/clef`,
   `Authorization: Bearer <token>`.
-- Body: `{"model": "clef" | "clef-flash", "state": <string or JSON>, "questions": {...}}`.
-  The docs say `"clef-flash"` selects `@cf/cloudflare/clef-flash`; the URL stays the `clef` one.
+- Body: `{"model": "clef", "state": <string or JSON>, "questions": {...}}`.
+  The REST endpoint accepts only `clef`; `clef-flash` returned HTTP 422 Unsupported model in a live call.
 - 1 to 64 questions; ids use letters, digits, `_`, `.`, `-` (max 100 chars).
 - Question types: `noul` (yes/no), `choice`, `score`.
 - `choice` criteria: an object mapping option id to its description (string, object, array or
@@ -130,13 +130,13 @@ Sources: https://developers.cloudflare.com/workers-ai/models/clef/ , its
 | `target_ratio` | 0.6 | 0.6 |
 | `keep_recent_turns` | 4 (min 1) | 4 |
 | `min_confidence` | 0.7 | 0.7 |
-| `clef_model` | `"clef-flash"` (or `"clef"`) | `"clef-flash"` |
+| `clef_model` | `"clef"` | `"clef"` |
 | `writer_model` | `"claude-haiku-5-5"` | `"claude-haiku-5-5"` |
 | `max_questions` | 64 | default |
 | `clef_chars_per_turn` | 800 | default |
 | `writer_chars_per_turn` | 6000 | default |
 | `failure_cooldown` | 60.0 s | default |
-| `background` | `True` | `True` |
+| `background` | `True` | `False` (off for the first live test) |
 | `hard_budget_ratio` | 2.0 (must be > 1) | 2.0 |
 | `job_timeout` | 120.0 s | default |
 | `clef_client`, `llm` | real clients | default (swap for fakes) |

@@ -26,7 +26,8 @@ from unforget.models import ACTIONS
 logger = logging.getLogger("unforget.clef")
 
 CLEF_URL = "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/cloudflare/clef"
-CLEF_MODELS = ("clef", "clef-flash")
+# The REST endpoint rejected "clef-flash" with HTTP 422 "Unsupported model" (2026-11-01).
+CLEF_MODELS = ("clef",)
 MAX_QUESTIONS = 64
 
 

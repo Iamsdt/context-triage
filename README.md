@@ -1,14 +1,14 @@
-# unforget
+# context-triage
 
-Context compression where a small decision model chooses, turn by turn, what to keep, compress, archive, drop or pin, and everything except a dropped turn can be read back later.
+Context triage for LLM agents: a small decision model looks at each old turn and decides to keep, compress, archive, drop or pin it. Everything except a dropped turn can be read back later.
 
-**Status:** proof of concept. Not a library, not on PyPI, not benchmarked. It is a showcase of one idea built on 10xGraph.
+**Status:** proof of concept. Not a library, not on PyPI, not benchmarked. It is a showcase of one idea built on 10xGraph. The Python package inside is still named `unforget`, its working name.
 
 ## The idea
 
 When an agent's chat gets long, the usual fix is one big LLM summary of everything that came before. That rewrites all old context at once, loses detail you cannot get back, and costs a call to your main model.
 
-unforget does something different. Once the conversation passes a token budget, it groups the history into turns and asks a small dedicated decision model, Cloudflare Clef running on Workers AI, one question per old turn: what should happen to this turn?
+context-triage does something different. Once the conversation passes a token budget, it groups the history into turns and asks a small dedicated decision model, Cloudflare Clef running on Workers AI, one question per old turn: what should happen to this turn?
 
 - `keep`: leave it as it is.
 - `compress`: replace it with a 1 to 3 sentence note. The full turn is archived.
@@ -16,11 +16,11 @@ unforget does something different. Once the conversation passes a token budget, 
 - `drop`: remove it. Greetings and small talk. Not stored in the archive.
 - `pin`: extract durable facts (preferences, decisions, constraints) into a ledger that stays in the context. The full turn is archived.
 
-Clef does not write text. For a choice question it returns a probability for every option plus a confidence. That makes each decision cheap, comparable and easy to audit, and lets unforget ignore any decision the model is not sure about.
+Clef does not write text. For a choice question it returns a probability for every option plus a confidence. That makes each decision cheap, comparable and easy to audit, and lets context-triage ignore any decision the model is not sure about.
 
 ## What the user sees vs what the model sees
 
-unforget edits only `state.context`, the working copy that is sent to the LLM. The thread's message history, which the user and the playground chat show, is stored separately by the checkpointer and is never changed. The newest `keep_recent_turns` turns are never candidates, so the user always sees every reply as it arrives.
+context-triage edits only `state.context`, the working copy that is sent to the LLM. The thread's message history, which the user and the playground chat show, is stored separately by the checkpointer and is never changed. The newest `keep_recent_turns` turns are never candidates, so the user always sees every reply as it arrives.
 
 Example: a medical assistant. The user asks for a poem and the bot refuses ("I only handle medical questions"). The user sees the refusal. Several turns later the context is over budget and Clef may `drop` that exchange from the model's working copy, because it is chatter with nothing worth reusing. The model no longer carries it, but the user can still scroll up and see it in the thread.
 
@@ -29,9 +29,9 @@ Example: a medical assistant. The user asks for a poem and the bot refuses ("I o
 - One-shot summaries (for example the auto-compact in Claude Code) rewrite the whole history in one pass and are not reversible.
 - Observation masking hides old tool output with a fixed rule. It is cheap but does not look at content.
 - LLM-ranked condensers (for example OpenHands' attention condenser) keep the top N events and drop the rest, with no reasons and no way back.
-- Memory stores such as Mem0 and Zep keep facts outside the live context. unforget updates facts inside it.
+- Memory stores such as Mem0 and Zep keep facts outside the live context. context-triage updates facts inside it.
 
-unforget combines per-turn actions, a cheap non-main-model decider with no training, a restorable archive and fact updates in the live window. It does not claim to be first, and it has not been measured against any of the above.
+context-triage combines per-turn actions, a cheap non-main-model decider with no training, a restorable archive and fact updates in the live window. It does not claim to be first, and it has not been measured against any of the above.
 
 ## Pipeline, step by step
 
@@ -91,7 +91,7 @@ A turn is one user message through the final assistant reply, including every to
 
 Because whole turns are removed, user/assistant alternation stays valid and a tool call is never separated from its result.
 
-Each turn gets a stable number the first time unforget sees it, written to its first message's `metadata["unforget_turn"]`. The number survives checkpointing and does not shift when earlier turns are removed.
+Each turn gets a stable number the first time context-triage sees it, written to its first message's `metadata["unforget_turn"]`. The number survives checkpointing and does not shift when earlier turns are removed.
 
 ### 4. Which turns are candidates
 
@@ -134,11 +134,11 @@ A `pin` turn is removed from the context even if the writer finds no durable fac
 
 ### 8. The writer LLM
 
-`compress` and `pin` need text written by a model, so unforget makes one call for all `compress` turns and one for all `pin` turns, run concurrently, using `writer_model` (default and demo value: `claude-haiku-5-5`) through 10xGraph's `call_llm`. Each turn is clipped to `writer_chars_per_turn` (6000) characters. The replies are JSON: `{"notes": [...]}` and `{"facts": [...]}`. Archived content itself is always the original messages, never the clipped or written text.
+`compress` and `pin` need text written by a model, so context-triage makes one call for all `compress` turns and one for all `pin` turns, run concurrently, using `writer_model` (default and demo value: `claude-haiku-5-5`) through 10xGraph's `call_llm`. Each turn is clipped to `writer_chars_per_turn` (6000) characters. The replies are JSON: `{"notes": [...]}` and `{"facts": [...]}`. Archived content itself is always the original messages, never the clipped or written text.
 
 ### 9. Fact supersession
 
-The pin prompt gets the current ledger. If a new fact updates or contradicts an existing one, the writer lists the old key under `replaces` (or reuses the same key). unforget then marks the old fact `superseded` and sets `superseded_by_turn`. It is never deleted. Only facts with status `current` are rendered into the summary and sent to Clef, so "we use MySQL" followed later by "we switched to Postgres" leaves one current fact and one superseded record.
+The pin prompt gets the current ledger. If a new fact updates or contradicts an existing one, the writer lists the old key under `replaces` (or reuses the same key). context-triage then marks the old fact `superseded` and sets `superseded_by_turn`. It is never deleted. Only facts with status `current` are rendered into the summary and sent to Clef, so "we use MySQL" followed later by "we switched to Postgres" leaves one current fact and one superseded record.
 
 ### 10. What the model sees
 
@@ -205,7 +205,7 @@ Constructor arguments of `UnforgetContextManager` (all keyword-only):
 | `target_ratio` | 0.6 | 0.6 | A trim aims for `target_ratio * token_budget`. |
 | `keep_recent_turns` | 4 (minimum 1) | 4 | Newest turns never offered to Clef. |
 | `min_confidence` | 0.7 | 0.7 | Apply the top option only at or above this probability. |
-| `clef_model` | `"clef-flash"` | `"clef-flash"` | `"clef-flash"` or `"clef"`. |
+| `clef_model` | `"clef"` | `"clef"` | The only model the REST endpoint accepts. |
 | `writer_model` | `"claude-haiku-5-5"` | `"claude-haiku-5-5"` | Model for compress notes and pinned facts. |
 | `clef_client` | `ClefClient()` | default | Swap in a fake for tests. |
 | `llm` | `call_llm` with `writer_model` | default | Replaces the writer call: `async (system_prompt, prompt) -> str`. |
@@ -214,7 +214,7 @@ Constructor arguments of `UnforgetContextManager` (all keyword-only):
 | `writer_chars_per_turn` | 6000 | default | Turn text clipped to this for the writer. |
 | `failure_cooldown` | 60.0 | default | Seconds to skip trimming after a failure. |
 | `recall_tool_name` | `"recall"` | default | Tool name the summary tells the model to call. |
-| `background` | `True` | `True` | Run Clef and the writer as a background task and apply the result on the next call. `False` awaits them inside the trim. |
+| `background` | `True` | `False` (off for the first live test) | Run Clef and the writer as a background task and apply the result on the next call. `False` awaits them inside the trim. |
 | `hard_budget_ratio` | 2.0 (must be greater than 1) | 2.0 | Past `hard_budget_ratio * token_budget` a call waits for the running job, or trims inline. 6000 tokens in the demo. |
 | `job_timeout` | 120.0 | default | Seconds a background job may take before it counts as a failure. |
 
@@ -226,13 +226,14 @@ The demo uses a 3000-token budget so decisions show up after a handful of turns.
 
 Requirements: Python 3.12 or newer (`sync.sh` creates a 3.13 venv), `uv`, a Cloudflare account, an Anthropic API key.
 
-1. Build the environment:
+1. Clone this repo (`context-triage`) and work from its folder. `sync.sh` installs 10xGraph from sibling checkouts, so `../agentflow` (core) and `../agentflow-api` must exist next to the repo folder. Then build the environment:
 
    ```bash
+   cd context-triage
    ./sync.sh
    ```
 
-   This installs 10xGraph from the sibling folders `../agentflow` and `../agentflow-api` in editable mode, plus this project. It exists because the project was built against a local 10xGraph checkout. Once 10xGraph is published at the version `pyproject.toml` asks for (`10xgraph[anthropic,sqlite_checkpoint]>=1.0.0rc4` and `10xgraph-api>=1.0.0rc4`), a plain `pip install` of the dependencies in `pyproject.toml` is enough.
+   This installs 10xGraph from `../agentflow` and `../agentflow-api` in editable mode, plus this project (the `unforget` package). It exists because the project was built against a local 10xGraph checkout. `./sync.sh --clean` deletes `.venv` and rebuilds it from scratch. Once 10xGraph is published at the version `pyproject.toml` asks for (`10xgraph[anthropic,sqlite_checkpoint]>=1.0.0rc4` and `10xgraph-api>=1.0.0rc4`), a plain `pip install` of the dependencies in `pyproject.toml` is enough.
 
 2. Configure credentials:
 
@@ -251,6 +252,8 @@ Requirements: Python 3.12 or newer (`sync.sh` creates a 3.13 venv), `uv`, a Clou
    ```bash
    .venv/bin/10xgraph dev
    ```
+
+   `10xgraph dev` opens the playground in your browser.
 
 Threads are stored in `unforget.db` next to the project. Delete it to start over. Without the Cloudflare pair the agent still works, it just never trims.
 
@@ -316,7 +319,7 @@ Cons and limitations:
 - **Sync `invoke()` still waits.** Core drains background tasks at the end of a sync `invoke()` and on `aclose()`, so that path waits for the job. `aclose` may also cancel a job, which is then discarded.
 - **Clef's choice quality on this task is untested.** Clef is a general decision model; nobody has checked how often it picks sensibly here. Questions are capped at 64 per call, and Clef's context is 65,536 tokens, which is why each turn is clipped to 800 characters before it is sent (so Clef decides from the head and tail of long turns only).
 - **State grows.** Archived turns are stored in the checkpoint, so the checkpoint can be larger than the live context ever is.
-- **Provider prompt caching.** Rewriting old context changes the prompt prefix and can invalidate cached prefixes. unforget does not model this cost.
+- **Provider prompt caching.** Rewriting old context changes the prompt prefix and can invalidate cached prefixes. context-triage does not model this cost.
 - **Rough token estimate.** About 4 characters per token, not a real tokenizer.
 - **Writer errors fail the whole trim**, including decisions Clef already made, until the cooldown ends.
 - **Open items.** Cloudflare does not document whether the REST reply is wrapped in its usual `{"result": ...}` envelope, so the parser accepts both. The writer passes `temperature=1.0` because newer Claude models appear to reject other sampling values; this is unverified. No test suite, and no live run with real keys yet.
@@ -327,7 +330,7 @@ Recorded in `NOTES.md`, not fixed in the framework:
 
 1. `call_llm` sends `temperature=0.3` by default unless the model is on an internal no-sampling list, which does not include the Claude 5.5 models used here. The writer overrides it with `1.0`.
 2. `convert_messages` injects `context_summary` as an assistant message right after the system prompts. With Anthropic, if no user message precedes it, the first message is an assistant turn. Not verified live; `graph/agent.py` works around it with the user-role date entry.
-3. `sync_data` passes the original state, not its deep copy, to `atrim_context`, so the copy is wasted and the trim mutates the live state. Harmless for unforget.
+3. `sync_data` passes the original state, not its deep copy, to `atrim_context`, so the copy is wasted and the trim mutates the live state. Harmless for context-triage.
 
 ## Using Postgres instead of SQLite
 
@@ -344,8 +347,8 @@ Schema setup and the other options are in the 10xGraph docs at https://10xgraph.
 ## Clef facts
 
 - Endpoint: `POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/cloudflare/clef` with a Bearer token.
-- Models: `clef` and `clef-flash` (the latter selected through the `model` field in the body).
-- Input: a `state` (text or JSON) plus 1 to 64 typed questions. Types: `noul` (yes/no), `choice`, `score`. unforget uses only `choice`.
+- Models: `clef`. The REST endpoint accepts only `clef`; `clef-flash` returned HTTP 422 Unsupported model in a live call.
+- Input: a `state` (text or JSON) plus 1 to 64 typed questions. Types: `noul` (yes/no), `choice`, `score`. context-triage uses only `choice`.
 - A `choice` answer returns `choice`, `probabilities` and `confidence`.
 - Context: 65,536 tokens.
 - Price: $0.24 per million input tokens, no output charge.
