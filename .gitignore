@@ -1,0 +1,47 @@
+# Secrets and credentials: never commit these
+.env
+.env.*
+*.env
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+service_account*.json
+service-account*.json
+credentials*.json
+.aws/
+.ssh/
+.netrc
+.pypirc
+.npmrc
+!.env.example
+
+# Local data written by the dev server and 10xgraph eval
+uploads/
+eval_reports/
+*.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store

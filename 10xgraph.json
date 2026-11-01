@@ -1,0 +1,12 @@
+{
+  "agent": "graph.agent:app",
+  "env": ".env",
+  "auth": null,
+  "ag_ui": {
+    "enabled": false
+  },
+  "websocket": {
+    "enabled": false
+  },
+  "injectq": "graph.agent:container"
+}

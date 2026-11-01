@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unforget"
+version = "0.1.0"
+description = "Unforget: context compression that can always undo. A 10xGraph agent."
+license = {text = "MIT"}
+requires-python = ">=3.12"
+authors = []
+dependencies = [
+    "10xgraph[anthropic,sqlite_checkpoint]>=1.0.0rc4",
+    "10xgraph-api>=1.0.0rc4",
+    # Calls the Cloudflare Workers AI REST API (Clef). Listed directly: the
+    # Anthropic SDK 1.x ships httpx2, so plain httpx is not guaranteed otherwise.
+    "httpx>=0.27",
+]
+
+[tool.setuptools.packages.find]
+include = ["unforget*", "graph*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+lint.fixable = ["ALL"]
+lint.select = [
+    "E", "W", "F", "PL", "I", "B", "A", "S", "ISC", "ICN", "PIE", "Q",
+    "RET", "SIM", "TID", "RUF", "YTT", "UP", "C4", "PTH", "G", "INP", "T20",
+]
+lint.ignore = [
+    "UP006", "UP007", "RUF012", "G004", "B904", "B008", "ISC001",
+]
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+exclude = ["venv/*", ".venv/*"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/__init__.py" = ["E402", "S101"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.bandit]
+skips = ["B101"]
